@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+symlink=$(which terraform 2>/dev/null || echo "/usr/bin/terraform")
+ver=$1
+pattern='^latest(.*)$'
+os=$(uname -s | tr 'A-Z' 'a-z')
+platform=`[[ "$(uname -m)" == "x86_64" ]] && echo amd64 || echo 386`
+
+if [ -z "$ver" ]; then
+  terraform version
+  exit 0
+elif [[ "${ver//\./\\.}" =~ $pattern ]]; then
+  basever=${BASH_REMATCH[1]}
+  ver=$(git ls-remote -q --tags --refs https://github.com/hashicorp/terraform.git | grep -E "$basever" | sed -rn 's#^.+refs/tags/v([0-9\.]+)$#\1#p' | sort -uV | tail -1)
+fi
+
+bin="/opt/hashicorp/terraform/${ver}/terraform"
+if [ ! -f $bin ]; then
+  if [ -z "$(git ls-remote -q --tags --refs https://github.com/hashicorp/terraform.git v${ver})" ]; then
+    echo "Terraform version '${ver}' not found. Symlink unchanged." >&2
+    terraform version
+    exit 1
+  fi
+  echo "Fetching terraform ${ver}..."
+  DST=$(mktemp -u)
+  curl -o $DST https://releases.hashicorp.com/terraform/${ver}/terraform_${ver}_${os}_${platform}.zip
+  mkdir -p $(dirname $bin)
+  unzip $DST -d $(dirname $bin) >/dev/null 2>&1
+  rm $DST
+fi
+
+chmod +x $bin
+ln -sf $bin $symlink 2>/dev/null
+terraform version
