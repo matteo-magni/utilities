@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
+set -e -o pipefail
 
-symlink=$(which terraform 2>/dev/null || echo "/usr/bin/terraform")
+
+symlink=$(which terraform 2>/dev/null || echo "/usr/local/bin/terraform")
 ver=$1
 pattern='^latest(.*)$'
 os=$(uname -s | tr 'A-Z' 'a-z')
-platform=`[[ "$(uname -m)" == "x86_64" ]] && echo amd64 || echo 386`
+platform=`[[ "$(uname -m)" == "x86_64" ]] && echo amd64 || [[ "$(uname -m)" == "arm64" ]] && echo arm64 && echo || echo 386`
 
 if [ -z "$ver" ]; then
   terraform version
@@ -23,7 +25,7 @@ if [ ! -f $bin ]; then
   fi
   echo "Fetching terraform ${ver}..."
   DST=$(mktemp -u)
-  curl -o $DST https://releases.hashicorp.com/terraform/${ver}/terraform_${ver}_${os}_${platform}.zip
+  curl -Lfo $DST https://releases.hashicorp.com/terraform/${ver}/terraform_${ver}_${os}_${platform}.zip
   mkdir -p $(dirname $bin)
   unzip $DST -d $(dirname $bin) >/dev/null 2>&1
   rm $DST
