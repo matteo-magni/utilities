@@ -9,7 +9,7 @@ os=$(uname -s | tr 'A-Z' 'a-z')
 platform=`[[ "$(uname -m)" == "x86_64" ]] && echo amd64 || [[ "$(uname -m)" == "arm64" ]] && echo arm64 && echo || echo 386`
 
 if [ -z "$ver" ]; then
-  terraform version
+  terraform version 2>/dev/null || echo "terraform is not installed"
   exit 0
 elif [[ "${ver//\./\\.}" =~ $pattern ]]; then
   basever=${BASH_REMATCH[1]}
